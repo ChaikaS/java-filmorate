@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -7,13 +8,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.util.ResourceUtils;
+import ru.yandex.practicum.filmorate.model.User;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.time.LocalDate;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -23,174 +26,196 @@ class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void add() throws Exception {
-        String requestBody = getContentFromFile("add/request/user.json");
-        String responseBody = getContentFromFile("add/response/user.json");
+        User user = validUser();
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json(responseBody, false));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("test@mail.ru"))
+                .andExpect(jsonPath("$.login").value("testlogin"))
+                .andExpect(jsonPath("$.name").value("Test User"))
+                .andExpect(jsonPath("$.birthday").value("1990-01-01"));
     }
 
     @Test
     void addWithEmptyEmail() throws Exception {
-        String requestBody = getContentFromFile("add/request/email-empty.json");
+        User user = validUser();
+        user.setEmail("");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Электронная почта не может быть пустой"));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Электронная почта не может быть пустой"));
     }
 
     @Test
     void addWithEmptyLogin() throws Exception {
-        String requestBody = getContentFromFile("add/request/login-empty.json");
+        User user = validUser();
+        user.setLogin("");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Логин не может быть пустой"));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Логин не может быть пустой"));
     }
 
     @Test
     void addWithEmailWithoutAt() throws Exception {
-        String requestBody = getContentFromFile("add/request/email-without-at.json");
+        User user = validUser();
+        user.setEmail("invalid.email");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Электронная почта должна содержать символ @"));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Электронная почта должна содержать символ @"));
     }
 
     @Test
     void addWithLoginContainingSpace() throws Exception {
-        String requestBody = getContentFromFile("add/request/login-with-space.json");
+        User user = validUser();
+        user.setLogin("test login");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Логин не должен содержать пробел"));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Логин не должен содержать пробел"));
     }
 
     @Test
     void addWithBirthdayInFuture() throws Exception {
-        String requestBody = getContentFromFile("add/request/birthday-future.json");
+        User user = validUser();
+        user.setBirthday(LocalDate.now().plusDays(1));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Дата рождения не может быть в будущем"));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Дата рождения не может быть в будущем"));
     }
 
     @Test
     void addWithEmptyNameSetsLoginAsName() throws Exception {
-        String requestBody = getContentFromFile("add/request/name-empty-user.json");
-        String responseBody = getContentFromFile("add/response/name-empty-user.json");
+        User user = validUser();
+        user.setName("");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json(responseBody, false));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("testlogin"));
     }
 
     @Test
     void findAll() throws Exception {
-        createUser("add/request/user.json");
-        String responseBody = getContentFromFile("findAll/response/user.json");
+        createUser(validUser());
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/users"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json(responseBody, false));
+        mockMvc.perform(get("/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].email").value("test@mail.ru"));
     }
 
     @Test
     void findAllWithTwoUsers() throws Exception {
-        createUser("add/request/user.json");
-        createUser("add/request/user2.json");
-        String responseBody = getContentFromFile("findAll/response/users.json");
+        User first = validUser();
+        User second = validUser();
+        second.setEmail("test2@mail.ru");
+        second.setLogin("testlogin2");
+        second.setName("Test User 2");
+        second.setBirthday(LocalDate.of(1991, 2, 2));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/users"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json(responseBody, false));
+        createUser(first);
+        createUser(second);
+
+        mockMvc.perform(get("/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].email").value("test@mail.ru"))
+                .andExpect(jsonPath("$[1].email").value("test2@mail.ru"));
     }
 
     @Test
     void update() throws Exception {
-        createUser("add/request/user.json");
-        String requestBody = getContentFromFile("update/request/user.json");
-        String responseBody = getContentFromFile("update/response/user.json");
+        createUser(validUser());
+        User updated = validUser();
+        updated.setId(1L);
+        updated.setEmail("updated@mail.ru");
+        updated.setLogin("updatedlogin");
+        updated.setName("Updated User");
+        updated.setBirthday(LocalDate.of(1995, 5, 5));
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
+        mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json(responseBody, false));
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.email").value("updated@mail.ru"))
+                .andExpect(jsonPath("$.login").value("updatedlogin"))
+                .andExpect(jsonPath("$.name").value("Updated User"))
+                .andExpect(jsonPath("$.birthday").value("1995-05-05"));
     }
 
     @Test
     void updateWithEmptyId() throws Exception {
-        createUser("add/request/user.json");
-        String requestBody = getContentFromFile("update/request/user-id-empty.json");
+        createUser(validUser());
+        User updated = validUser();
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
+        mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Id должен быть указан"));
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Id должен быть указан"));
     }
 
     @Test
     void updateWithEmptyEmail() throws Exception {
-        createUser("add/request/user.json");
-        String requestBody = getContentFromFile("update/request/user-email-empty.json");
+        createUser(validUser());
+        User updated = validUser();
+        updated.setId(1L);
+        updated.setEmail("");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
+        mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Электронная почта не может быть пустой"));
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Электронная почта не может быть пустой"));
     }
 
     @Test
     void updateWithNotFoundId() throws Exception {
-        String requestBody = getContentFromFile("update/request/user-not-found.json");
+        User updated = validUser();
+        updated.setId(999L);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
+        mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(MockMvcResultMatchers.status().isNotFound())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error")
-                        .value("Пользователь с id = 999 не найден"));
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Пользователь с id = 999 не найден"));
     }
 
-    private void createUser(String fileName) throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+    private void createUser(User user) throws Exception {
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(getContentFromFile(fileName)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isOk());
     }
 
-    private String getContentFromFile(String fileName) {
-        try {
-            return Files.readString(ResourceUtils.getFile("classpath:" + fileName).toPath(), StandardCharsets.UTF_8);
-        } catch (IOException exception) {
-            throw new RuntimeException("Не открывается файл", exception);
-        }
+    private User validUser() {
+        User user = new User();
+        user.setEmail("test@mail.ru");
+        user.setLogin("testlogin");
+        user.setName("Test User");
+        user.setBirthday(LocalDate.of(1990, 1, 1));
+        return user;
     }
 }
