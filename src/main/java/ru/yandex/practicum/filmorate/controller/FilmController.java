@@ -65,6 +65,9 @@ public class FilmController {
         } else if (film.getDescription() == null || film.getDescription().isBlank()) {
             log.warn("Ошибка валидации фильма: Описание не может быть пустым");
             throw new ConditionsNotMetException("Описание не может быть пустым");
+        } else if (film.getReleaseDate() == null || film.getReleaseDate().isBlank()) {
+            log.warn("Ошибка валидации фильма: Дата релиза не может быть пустой");
+            throw new ConditionsNotMetException("Дата релиза не может быть пустой");
         } else if (film.getDescription().length() > 200) {
             log.warn("Ошибка валидации фильма: Максимальная длина описания — 200 символов");
             throw new ConditionsNotMetException("Максимальная длина описания — 200 символов");

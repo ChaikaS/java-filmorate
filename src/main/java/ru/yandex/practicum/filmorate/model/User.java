@@ -10,10 +10,5 @@ public class User {
     private String email;
     private String login;
     private String name;
-
-    public String getLogin() {
-        return login;
-    }
-
     private LocalDate birthday;
 }

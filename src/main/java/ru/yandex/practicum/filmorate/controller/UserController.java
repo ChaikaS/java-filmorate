@@ -67,6 +67,9 @@ public class UserController {
         } else if (user.getLogin() == null || user.getLogin().isBlank()) {
             log.warn("Ошибка валидации пользователя: Логин не может быть пустой");
             throw new ConditionsNotMetException("Логин не может быть пустой");
+        } else if (user.getBirthday() == null || user.getBirthday().isBlank()) {
+            log.warn("Ошибка валидации пользователя: Дата рождения не может быть пустой");
+            throw new ConditionsNotMetException("Дата рождения не может быть пустой");
         } else if (user.getLogin().contains(" ")) {
             log.warn("Ошибка валидации пользователя: Логин не должен содержать пробел");
             throw new ConditionsNotMetException("Логин не должен содержать пробел");
