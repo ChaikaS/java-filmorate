@@ -163,8 +163,9 @@ class FilmControllerTest {
         mockMvc.perform(put("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updated)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Название фильма не может быть пустым"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("test"));
     }
 
     @Test

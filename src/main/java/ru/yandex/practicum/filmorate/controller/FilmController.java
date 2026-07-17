@@ -44,12 +44,18 @@ public class FilmController {
         if (films.containsKey(newFilm.getId())) {
             Film oldFilm = films.get(newFilm.getId());
 
-            filmValidation(newFilm);
-
-            oldFilm.setName(newFilm.getName());
-            oldFilm.setDescription(newFilm.getDescription());
-            oldFilm.setReleaseDate(newFilm.getReleaseDate());
-            oldFilm.setDuration(newFilm.getDuration());
+            if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
+                oldFilm.setName(newFilm.getName());
+            }
+            if (newFilm.getDescription() != null && !newFilm.getDescription().isBlank()) {
+                oldFilm.setDescription(newFilm.getDescription());
+            }
+            if (newFilm.getReleaseDate() != null) {
+                oldFilm.setReleaseDate(newFilm.getReleaseDate());
+            }
+            if (newFilm.getDuration() != null) {
+                oldFilm.setDuration(newFilm.getDuration());
+            }
 
             log.info("Фильм с id = {} обновлён", newFilm.getId());
             return oldFilm;
@@ -65,7 +71,7 @@ public class FilmController {
         } else if (film.getDescription() == null || film.getDescription().isBlank()) {
             log.warn("Ошибка валидации фильма: Описание не может быть пустым");
             throw new ConditionsNotMetException("Описание не может быть пустым");
-        } else if (film.getReleaseDate() == null || film.getReleaseDate().isBlank()) {
+        } else if (film.getReleaseDate() == null) {
             log.warn("Ошибка валидации фильма: Дата релиза не может быть пустой");
             throw new ConditionsNotMetException("Дата релиза не может быть пустой");
         } else if (film.getDescription().length() > 200) {

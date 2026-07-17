@@ -43,17 +43,29 @@ public class UserController {
         if (users.containsKey(newUser.getId())) {
             User oldUser = users.get(newUser.getId());
 
-            userValidation(newUser);
-
-            oldUser.setEmail(newUser.getEmail());
-            oldUser.setLogin(newUser.getLogin());
-            oldUser.setName(newUser.getName());
-            oldUser.setBirthday(newUser.getBirthday());
+            if (newUser.getEmail() != null) {
+                if (newUser.getEmail() == null || newUser.getEmail().isBlank()) {
+                    log.warn("Ошибка валидации пользователя: Электронная почта не может быть пустой");
+                    throw new ConditionsNotMetException("Электронная почта не может быть пустой");
+                } else if (!newUser.getEmail().contains("@")) {
+                    log.warn("Ошибка валидации пользователя: Электронная почта должна содержать символ @");
+                    throw new ConditionsNotMetException("Электронная почта должна содержать символ @");
+                }
+                oldUser.setEmail(newUser.getEmail());
+            }
+            if (newUser.getLogin() != null && !newUser.getLogin().isBlank()) {
+                oldUser.setLogin(newUser.getLogin());
+            }
+            if (newUser.getName() != null && !newUser.getName().isBlank()) {
+                oldUser.setName(newUser.getName());
+            }
+            if (newUser.getBirthday() != null) {
+                oldUser.setBirthday(newUser.getBirthday());
+            }
 
             log.info("Пользователь с id = {} обновлён", newUser.getId());
             return oldUser;
         }
-        log.warn("Пользователь с id = {} не найден", newUser.getId());
         throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
     }
 
@@ -67,7 +79,7 @@ public class UserController {
         } else if (user.getLogin() == null || user.getLogin().isBlank()) {
             log.warn("Ошибка валидации пользователя: Логин не может быть пустой");
             throw new ConditionsNotMetException("Логин не может быть пустой");
-        } else if (user.getBirthday() == null || user.getBirthday().isBlank()) {
+        } else if (user.getBirthday() == null) {
             log.warn("Ошибка валидации пользователя: Дата рождения не может быть пустой");
             throw new ConditionsNotMetException("Дата рождения не может быть пустой");
         } else if (user.getLogin().contains(" ")) {
