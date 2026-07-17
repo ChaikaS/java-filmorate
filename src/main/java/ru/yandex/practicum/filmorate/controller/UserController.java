@@ -82,6 +82,9 @@ public class UserController {
         } else if (user.getBirthday() == null) {
             log.warn("Ошибка валидации пользователя: Дата рождения не может быть пустой");
             throw new ConditionsNotMetException("Дата рождения не может быть пустой");
+        } else if (user.getBirthday().isAfter(LocalDate.now())) {
+            log.warn("Ошибка валидации пользователя: Дата рождения не может быть в будущем");
+            throw new ConditionsNotMetException("Дата рождения не может быть в будущем");
         } else if (user.getLogin().contains(" ")) {
             log.warn("Ошибка валидации пользователя: Логин не должен содержать пробел");
             throw new ConditionsNotMetException("Логин не должен содержать пробел");
